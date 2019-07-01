@@ -187,9 +187,6 @@ RealSenseCamera::RealSenseCamera() : pipeline{}
 {
     // Explicitly enable depth and color stream, with these constraints:
     // Same dimensions and color stream has format BGR 8bit
-    // DEBUG
-    std::cout<<"RealSenseCamera() constructing ..."<<std::endl;
-    std::cout<<"RealSenseCamera() constructing step 1 ..."<<std::endl;
 
     rs2::config configuration {};
     configuration.disable_all_streams();
@@ -200,13 +197,8 @@ RealSenseCamera::RealSenseCamera() : pipeline{}
     configuration.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
 
     // Use the first detected device, if any
-    // DEBUG
-    std::cout<<"RealSenseCamera() constructing step 2 ..."<<std::endl;
     rs2::context ctx {};
     auto devices = ctx.query_devices();
-
-    // DEBUG
-    std::cout<<"RealSenseCamera() constructing step 3 ..."<<std::endl;
 
     if(devices.size() == 0)
         throw std::runtime_error { "No RealSense device detected" };
@@ -226,17 +218,13 @@ RealSenseCamera::RealSenseCamera() : pipeline{}
         }
     }
 
-    std::cout<<"RealSenseCamera() constructing step 3.4 ..."<<std::endl;
 
 
     pipeline.start(configuration);
 
-    std::cout<<"RealSenseCamera() constructing step 3.5 ..."<<std::endl;
 
 
     // Get depth sensor intrinsics
-    // DEBUG 
-    std::cout<<"RealSenseCamera() constructing step 4 ..."<<std::endl;
 
     auto streams = pipeline.get_active_profile().get_streams();
     for(const auto& stream : streams) {
@@ -249,23 +237,20 @@ RealSenseCamera::RealSenseCamera() : pipeline{}
             cam_params.principal_x = intrinsics.ppx;
             cam_params.principal_y = intrinsics.ppy;
 
-            // DEBUG
-            std::cout<<"====================================="<<std::endl;
-            std::cout<<"focal_x="<<cam_params.focal_x<<std::endl;
-            std::cout<<"focal_y="<<cam_params.focal_y<<std::endl;
-            std::cout<<"image_height="<<cam_params.image_height<<std::endl;
-            std::cout<<"image_width="<<cam_params.image_width<<std::endl;
-            std::cout<<"principal_x="<<cam_params.principal_x<<std::endl;
-            std::cout<<"principal_y="<<cam_params.principal_y<<std::endl;
-            std::cout<<"====================================="<<std::endl;
+            // // DEBUG
+            // std::cout<<"====================================="<<std::endl;
+            // std::cout<<"focal_x="<<cam_params.focal_x<<std::endl;
+            // std::cout<<"focal_y="<<cam_params.focal_y<<std::endl;
+            // std::cout<<"image_height="<<cam_params.image_height<<std::endl;
+            // std::cout<<"image_width="<<cam_params.image_width<<std::endl;
+            // std::cout<<"principal_x="<<cam_params.principal_x<<std::endl;
+            // std::cout<<"principal_y="<<cam_params.principal_y<<std::endl;
+            // std::cout<<"====================================="<<std::endl;
 
         }
     }
 
     // Get depth scale which is used to convert the measurements into millimeters
-    // DEBUG
-    std::cout<<"RealSenseCamera() constructing step 5 ..."<<std::endl;
-
     depth_scale = pipeline.get_active_profile().get_device().first<rs2::depth_sensor>().get_depth_scale();
 }
 

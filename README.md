@@ -1,3 +1,16 @@
+# KinectFusionLib and KinectFusionApp
+
+这个是自己在源仓库的基础上，加上了自己注释的版本。
+
+程序由两个部分组成，lib部分和app部分。
+
+注意编译通过的时候需要使用在cuda支持下的Eigen和OpenCV库，CUDA编译的时候使用的是8.0的版本。
+
+下面是ReadMe的源文档。
+
+----
+
+
 KinectFusionApp
 ===============
 

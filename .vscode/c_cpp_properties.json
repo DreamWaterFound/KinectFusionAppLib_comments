@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/KinectFusionApp/include",
+                "${workspaceFolder}/KinectFusionLib/include",
+                "/usr/local/cuda-8.0/include",
+                "/home/guoqing/libraries/opencv_320/include",
+                "/home/guoqing/libraries/opencv_320/include/opencv",
+                "/home/guoqing/libraries/eigen_333_cuda8/include/eigen3",
+                "/usr/include/openni2",
+                "/usr/include/librealsense2"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}

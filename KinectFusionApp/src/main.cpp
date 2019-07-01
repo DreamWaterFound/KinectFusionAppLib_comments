@@ -1,25 +1,45 @@
 
+/**
+ * @file main.cpp
+ * @author guoqing (1337841346@qq.com)
+ * @brief KinectFusionApp 运行的主文件
+ * @version 0.1
+ * @date 2019-07-01
+ * 
+ * @copyright Copyright (c) 2019
+ * 
+ */
+
+// KinectFusionApp 自身的依赖
 #include <kinectfusion.h>
 #include <depth_camera.h>
 #include <util.h>
 
+// C++ 标准库
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
+
+// 为了整洁，忽略在导入 opencv 的时候产生的警告
+#pragma GCC diagnostic push                 // 忽略警告的代码段 -- 开始
+#pragma GCC diagnostic ignored "-Wall"      // 设置忽略的警告的类型
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Weffc++"
 #include <opencv2/highgui.hpp>
-#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop                  // 忽略警告的代码段 -- 结束
 
+// C++ 命令行参数解析工具
 #include <cxxopts.hpp>
+// C++ 解析 toml 格式配置文件的工具
 #include <cpptoml.h>
 
+// ? 目测是深度数据的存储路径
 std::string data_path {};
+// ? 目测是 .bag 数据集中的topic
 std::string recording_name {};
 
+// TODO
 auto make_configuration(const std::shared_ptr<cpptoml::table>& toml_config)
 {
     kinectfusion::GlobalConfiguration configuration;
@@ -45,20 +65,15 @@ auto make_configuration(const std::shared_ptr<cpptoml::table>& toml_config)
     auto icp_iterations_values = *toml_config->get_qualified_array_of<int64_t>("kinectfusion.icp_iterations");
     configuration.icp_iterations = {icp_iterations_values.begin(), icp_iterations_values.end()};
 
-
-    // DEBUG
-    std::cout<<"make_config() OK."<<std::endl;
-
     return configuration;
 }
 
-
+// TODO
 auto make_camera(const std::shared_ptr<cpptoml::table>& toml_config)
 {
     std::unique_ptr<DepthCamera> camera;
 
     const auto camera_type = *toml_config->get_qualified_as<std::string>("camera.type");
-    std::cout<<"make_camera step 1."<<std::endl;
     if (camera_type == "Pseudo") {
         std::stringstream source_path {};
         source_path << data_path << "source/" << recording_name << "/";
@@ -66,14 +81,9 @@ auto make_camera(const std::shared_ptr<cpptoml::table>& toml_config)
     } else if (camera_type == "Xtion") {
         camera = std::make_unique<XtionCamera>();
     } else if (camera_type == "RealSense") {
-        std::cout<<"make_camera step 2."<<std::endl;
         if(*toml_config->get_qualified_as<bool>("camera.realsense.live")) {
-            std::cout<<"make_camera step 2.1."<<std::endl;
-            // NOTICE 这句话出现了问题
             camera = std::make_unique<RealSenseCamera>();
-            std::cout<<"make_camera step 2.1 -- OK."<<std::endl;
         } else {
-            std::cout<<"make_camera step 2.2."<<std::endl;
             std::stringstream source_file {};
             source_file << data_path << "source/" << recording_name << ".bag";
             camera = std::make_unique<RealSenseCamera>(source_file.str());
@@ -82,21 +92,14 @@ auto make_camera(const std::shared_ptr<cpptoml::table>& toml_config)
         throw std::logic_error("There is no implementation for the camera type you specified.");
     }
 
-    // DEBUG
-    std::cout<<"make_camera() OK."<<std::endl;
-
     
     return camera;
 }
 
+// TODO
 void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::GlobalConfiguration& configuration)
 {
-    std::cout<<"pipeline constructing ...."<<std::endl;
     kinectfusion::Pipeline pipeline { camera->get_parameters(), configuration };
-
-    // DEBUG
-    std::cout<<"pipeline constructed."<<std::endl;
-
 
     cv::namedWindow("Pipeline Output");
     for (bool end = false; !end;) {
@@ -165,6 +168,7 @@ void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::Gl
     }
 }
 
+// TODO
 void setup_cuda_device()
 {
     auto n_devices = cv::cuda::getCudaEnabledDeviceCount();
@@ -180,9 +184,18 @@ void setup_cuda_device()
     cv::cuda::setDevice(0);
 }
 
+/**
+ * @brief 程序入口
+ * @param[in] argc argc
+ * @param[in] argv argv
+ * @return int     运行状态
+ */
 int main(int argc, char* argv[])
 {
+    // TODO 这些解析的部分我现在还都看不懂，得先拿这两个库做个操练才行
+
     // Parse command line options
+    // step 1 解析命令行参数
     cxxopts::Options options { "KinectFusionApp",
                                "Sample application for KinectFusionLib, a modern implementation of the KinectFusion approach"};
     options.add_options()("c,config", "Configuration filename", cxxopts::value<std::string>());
@@ -191,18 +204,17 @@ int main(int argc, char* argv[])
         throw std::invalid_argument("You have to specify a path to the configuration file");
 
     // Parse TOML configuration file
+    // step 2 解析 TOML 配置文件
     auto toml_config = cpptoml::parse_file(program_arguments["config"].as<std::string>());
     data_path = *toml_config->get_as<std::string>("data_path");
     recording_name = *toml_config->get_as<std::string>("recording_name");
 
     // Print info about available CUDA devices and specify device to use
-    // DEBUG
-    std::cout<<"setup_cuda_device()"<<std::endl;
+    // step 3 设置CUDA设备
     setup_cuda_device();
 
     // Start the program's main loop
-    // DEBUG
-    std::cout<<"main_loop()"<<std::endl;
+    // step 4 进入主循环
     main_loop(
             make_camera(toml_config),
             make_configuration(toml_config)
