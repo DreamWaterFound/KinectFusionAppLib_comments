@@ -62,9 +62,9 @@ namespace kinectfusion {
             if (level == 0) return *this;
 
             const float scale_factor = powf(0.5f, static_cast<float>(level));
-            return CameraParameters { image_width >> level, image_height >> level,
+            return CameraParameters { image_width >> level, image_height >> level,          // 注意这里是左移... mmp
                                       focal_x * scale_factor, focal_y * scale_factor,
-                                      (principal_x + 0.5f) * scale_factor - 0.5f,
+                                      (principal_x + 0.5f) * scale_factor - 0.5f,           // ? 这边为什么是这个操作?
                                       (principal_y + 0.5f) * scale_factor - 0.5f };
         }
     };
@@ -146,6 +146,7 @@ namespace kinectfusion {
     struct GlobalConfiguration {
         // The overall size of the volume (in mm). Will be allocated on the GPU and is thus limited by the amount of
         // storage you have available. Dimensions are (x, y, z).
+        // ? 花括号中的是啥操作?
         int3 volume_size { make_int3(512, 512, 512) };
 
         // The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.

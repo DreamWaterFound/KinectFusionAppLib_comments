@@ -1,10 +1,24 @@
 
+/**
+ * @file depth_camera.cpp
+ * @author guoqing (1337841346@qq.com)
+ * @brief 实现深度相机接口类
+ * @version 0.1
+ * @date 2019-07-04
+ * 
+ * @copyright Copyright (c) 2019
+ * 
+ */
+
+// 自己的头文件
 #include <depth_camera.h>
 
+// C++ STD LIB
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 
+// 临时禁用警告
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wall"
 #pragma GCC diagnostic ignored "-Wextra"
@@ -13,13 +27,19 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv/cv.hpp>
-
 #pragma GCC diagnostic pop
 
 // ### Pseudo ###
+// 构造函数,参数是深度图也是配置文件的存放路径
 PseudoCamera::PseudoCamera(const std::string& _data_path) :
-        data_path{_data_path}, cam_params{}, current_index{0}
+        // C++11 中的花括号初始化
+        data_path{_data_path}, cam_params{}, 
+        current_index{0}                                        //注意这个成员变量将会被初始化成为0
 {
+    // 从已经写死的文件中读取相机参数,包括:
+    // * 图像大小    w  h
+    // * 焦距       fx fy
+    // * 光心偏差    cx cy
     std::ifstream cam_params_stream { data_path + "seq_cparam.txt" };
     if (!cam_params_stream.is_open())
         throw std::runtime_error{"Camera parameters could not be read"};
@@ -28,16 +48,19 @@ PseudoCamera::PseudoCamera(const std::string& _data_path) :
     cam_params_stream >> cam_params.principal_x >> cam_params.principal_y;
 };
 
+// 虚拟相机获取图像
 InputFrame PseudoCamera::grab_frame () const
 {
+    // step 1 生成访问路径
     std::stringstream depth_file;
     depth_file << data_path << "seq_depth" << std::setfill('0') << std::setw(5) << current_index << ".png";
     std::stringstream color_file;
     color_file << data_path << "seq_color" << std::setfill('0') << std::setw(5) << current_index << ".png";
 
+    // step 2 获取深度图像并且检查
     InputFrame frame {};
     cv::imread(depth_file.str(), -1).convertTo(frame.depth_map, CV_32FC1);
-
+    // 如果为空说明已经到头了,然后从0重新生成
     if (frame.depth_map.empty()) {  // When this happens, we reached the end of the recording and have to
                                     // start at 0 again
         current_index = 0;
@@ -48,13 +71,16 @@ InputFrame PseudoCamera::grab_frame () const
         frame.depth_map = cv::imread(depth_file.str(), -1);
     }
 
+    // step 3 获取彩色图像
     frame.color_map = cv::imread(color_file.str());
 
+    // step 4 修改状态并且返回
     ++current_index;
 
     return frame;
 }
 
+// 获取相机参数
 CameraParameters PseudoCamera::get_parameters() const
 {
     return cam_params;
