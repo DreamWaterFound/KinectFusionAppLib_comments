@@ -9,6 +9,7 @@
  */
 
 // 这里包含了这个头文件,主要是因为下面的程序中使用到了结构体 CameraParameters
+// NOTICE 这里的相机内参,都是指的深度相机的内参
 #include <data_types.h>
 
 // 禁止警告
@@ -87,25 +88,35 @@ private:
  */
 class XtionCamera : public DepthCamera {
 public:
+    /** @brief 构造函数 */
     XtionCamera();
+    /** @brief 析构函数, 默认的 */
     ~XtionCamera() override = default;
 
+    /**
+     * @brief 获取 RGB-D 图像对
+     * @return InputFrame RGB-D 图像对
+     */
     InputFrame grab_frame() const override;
 
+    /**
+     * @brief 获取相机参数
+     * @return CameraParameters 相机参数
+     */
     CameraParameters get_parameters() const override;
 
 private:
-    openni::Device device;
+    openni::Device device;                          // OpenNI 设备对象
     
     // mutable 用于在 const 修饰的类成员函数中突破不能修改的限制
     // ref: https://blog.csdn.net/starlee/article/details/1430387
 
-    mutable openni::VideoStream depthStream;
-    mutable openni::VideoStream colorStream;
-    mutable openni::VideoFrameRef depthFrame;
-    mutable openni::VideoFrameRef colorFrame;
+    mutable openni::VideoStream   depthStream;      // 深度图像流
+    mutable openni::VideoStream   colorStream;      // 彩色图像流
+    mutable openni::VideoFrameRef depthFrame;       // 深度帧对象
+    mutable openni::VideoFrameRef colorFrame;       // 彩色帧对象
 
-    CameraParameters cam_params;
+    CameraParameters cam_params;                    // 相机内参结构体
 };
 
 /*
@@ -113,20 +124,35 @@ private:
  */
 class RealSenseCamera : public DepthCamera {
 public:
+    /** @brief 无参构造函数 */
     RealSenseCamera();
+
+    /**
+     * @brief 含参构造函数,从回放文件中获取参数
+     * @param[in] filename 回放文件路径
+     */
     RealSenseCamera(const std::string& filename);
 
+    /** @brief 析构函数 -- 默认的 */
     ~RealSenseCamera() override = default;
 
+    /**
+     * @brief 获取 RGB-D 图像对
+     * @return InputFrame RGB-D图像对
+     */
     InputFrame grab_frame() const override;
 
+    /**
+     * @brief 获取相机的内参数结构体
+     * @return CameraParameters 相机的内参数结构体
+     */
     CameraParameters get_parameters() const override;
 
 private:
-    rs2::pipeline pipeline;
-    CameraParameters cam_params;
+    rs2::pipeline pipeline;             // 驱动 pipeline 对象
+    CameraParameters cam_params;        // 相机参数结构体
 
-    float depth_scale;
+    float depth_scale;                  // 深度值和真实世界中的尺度(mm)之间的缩放倍数
 };
 
 
