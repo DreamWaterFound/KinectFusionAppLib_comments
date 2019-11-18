@@ -173,7 +173,7 @@ XtionCamera::XtionCamera() :
     int zeroPlaneDistance; // in mm
     depthStream.getProperty(XN_STREAM_PROPERTY_ZERO_PLANE_DISTANCE, &zeroPlaneDistance);
 
-    // ? 感觉 baseline 拿到之后并没有起到什么作用啊
+    // ! 感觉 baseline 拿到之后除了接受基线长度之外并没有起到什么作用啊, 可以删除了
     double baseline;
     depthStream.getProperty<double>(XN_STREAM_PROPERTY_EMITTER_DCMOS_DISTANCE, &baseline);
     baseline *= 10.0;
@@ -263,6 +263,7 @@ RealSenseCamera::RealSenseCamera() : pipeline{}
         auto device = devices[0]; // The device handle defined here is invalid after pipeline.start()
 
         // Print info about the device
+        // ? 重新温习一下这个地方, 忘记主要内容了
         std::cout << "Using this RealSense device:" << std::endl;
         for ( int info_idx = 0; info_idx < static_cast<int>(RS2_CAMERA_INFO_COUNT); ++info_idx ) {
             auto info_type = static_cast<rs2_camera_info>(info_idx);
@@ -278,7 +279,7 @@ RealSenseCamera::RealSenseCamera() : pipeline{}
     pipeline.start(configuration);
 
 
-    // step 4 获取相机内参 -- 指的是深度相机的内参
+    // step 4 获取相机内参 -- 指的是深度相机的内参, 因为KinectFusion只使用深度相机的图像
     // Get depth sensor intrinsics
     auto streams = pipeline.get_active_profile().get_streams();
     for(const auto& stream : streams) {
@@ -355,6 +356,7 @@ InputFrame RealSenseCamera::grab_frame() const
                           cv::Mat::AUTO_STEP};
 
     cv::Mat converted_depth_image;
+    // 然后对原始的深度图格式转换成为 32FC1 格式的深度图
     depth_image.convertTo(converted_depth_image, CV_32FC1, depth_scale * 1000.f);
 
     // 彩色图

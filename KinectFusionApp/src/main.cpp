@@ -60,8 +60,10 @@ auto make_configuration(const std::shared_ptr<cpptoml::table>& toml_config)
     // 双边滤波器的核尺寸. 下面的这些参数和 cv::cuda::bilateralFilter() 函数的参数是一一对应的
     configuration.bfilter_kernel_size = *toml_config->get_qualified_as<int>("kinectfusion.bfilter_kernel_size");
     // 颜色空间中的方差
+    // ? 为什么会有这一项? 为什么需要对彩色图像也进行双边滤波?
+    // 这个应该是"值域核"滤波使用的方差吧
     configuration.bfilter_color_sigma  = static_cast<float>(*toml_config->get_qualified_as<double>("kinectfusion.bfilter_color_sigma"));
-    // 深度图对应的空间中使用的方差
+    // 深度图对应的空间中使用的方差 -- 空间核滤波使用的方差
     configuration.bfilter_spatial_sigma  = static_cast<float>(*toml_config->get_qualified_as<double>("kinectfusion.bfilter_spatial_sigma"));
 
     // 指的是第一帧的时候相机光心距离体素块中心点的距离
@@ -76,12 +78,12 @@ auto make_configuration(const std::shared_ptr<cpptoml::table>& toml_config)
     configuration.num_levels  = *toml_config->get_qualified_as<int>("kinectfusion.num_levels");
     // ? 不是很明白,貌似随着时间的进行,某个东西会增多,这个就是进行上线阈值的设定
     configuration.triangles_buffer_size  = *toml_config->get_qualified_as<int>("kinectfusion.triangles_buffer_size");
-    // ? 同上. 但是感觉KF的过程并不需要进行点云的存储啊
+    // ? 同上. 但是感觉KF的过程并不需要进行点云的存储啊, 而且怎么控制啊
     configuration.pointcloud_buffer_size  = *toml_config->get_qualified_as<int>("kinectfusion.pointcloud_buffer_size");
 
-    // 如果关联到的点的深度阈值差超过了这个阈值,那么它们就会被认为是outlier,不会参与ICP过程 (mm)
+    // 如果关联到的点的深度阈值差超过了这个阈值,那么它们就会被认为是outlier,不会参与ICP过程 (mm) (参考原始论文)
     configuration.distance_threshold  = static_cast<float>(*toml_config->get_qualified_as<double>("kinectfusion.distance_threshold"));
-    // 和上面相似,如果关联到的点的法向量的角度差超过了这个阈值, 就认为是outlier,不会参与ICP过程 (deg)
+    // 和上面相似,如果关联到的点的法向量的角度差超过了这个阈值, 就认为是outlier,不会参与ICP过程 (deg) (参考原始论文)
     configuration.angle_threshold  = static_cast<float>(*toml_config->get_qualified_as<double>("kinectfusion.angle_threshold"));
     // 金字塔每一层进行ICP迭代的次数
     auto icp_iterations_values = *toml_config->get_qualified_array_of<int64_t>("kinectfusion.icp_iterations");
@@ -132,27 +134,39 @@ auto make_camera(const std::shared_ptr<cpptoml::table>& toml_config)
  */
 void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::GlobalConfiguration& configuration)
 {
+    // step 1 生成 pipeline
     kinectfusion::Pipeline pipeline { camera->get_parameters(), configuration };
 
+    // step 2 生成用于显示的窗口
+    // 这tm竟然是个OpenCV的窗口...
     cv::namedWindow("Pipeline Output");
+
+    // step 3 main loop
+    // 通过一个标志位 end 控制
     for (bool end = false; !end;) {
-        //1 Get frame
+        // step 3.1 Get frame (depth + color)
         InputFrame frame = camera->grab_frame();
 
-        //2 Process frame
+        // step 3.2 Process frame
         bool success = pipeline.process_frame(frame.depth_map, frame.color_map);
         if (!success)
             std::cout << "Frame could not be processed" << std::endl;
 
-        //3 Display the output
+        // step 3.3 Display the output
+        // 这里调用函数得到的是一个固定视角下的渲染出来的图像
         cv::imshow("Pipeline Output", pipeline.get_last_model_frame());
 
+        // step 3.4 处理键盘事件
         switch (cv::waitKey(1)) {
+            // 按下 a 键, 表示保存相机的位姿和重建的mesh模型,然后退出
             case 'a': { // Save all available data
                 std::cout << "Saving all ..." << std::endl;
+                // 保存相机的位姿
                 std::cout << "Saving poses ..." << std::endl;
+                // 一个 T 矩阵序列
                 auto poses = pipeline.get_poses();
 
+                // 卧槽, 每一个相机位姿都单独的存储在一个 .txt 文件中
                 for (size_t i = 0; i < poses.size(); ++i) {
                     std::stringstream file_name {};
                     file_name << data_path << "poses/" << recording_name << "/seq_pose" << std::setfill('0')
@@ -160,6 +174,7 @@ void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::Gl
                     std::ofstream { file_name.str() } << poses[i] << std::endl;
                 }
 
+                // 提取重建的 mesh 模型, 首先从GPU导出,然后保存为 .ply 文件
                 std::cout << "Extracting mesh ..." << std::endl;
                 auto mesh = pipeline.extract_mesh();
                 std::cout << "Saving mesh ..." << std::endl;
@@ -169,12 +184,13 @@ void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::Gl
                 end = true;
                 break;
             }
+            // 如果 p 被按下,就只保存相机的位姿,然后退出
             case 'p': { // Save poses only
                 std::cout << "Saving poses ..." << std::endl;
                 auto poses = pipeline.get_poses();
 
                 for (size_t i = 0; i < poses.size(); ++i) {
-                    std::stringstream file_name {};
+                   std::stringstream file_name {};
                     file_name << data_path << "poses/" << recording_name << "/seq_pose" << std::setfill('0')
                               << std::setw(5) << i << ".txt";
                     std::ofstream { file_name.str() } << poses[i] << std::endl;
@@ -182,6 +198,7 @@ void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::Gl
                 end = true;
                 break;
             }
+            // 如果 m 被按下,就只保存重建的结果,然后退出
             case 'm': { // Save mesh only
                 std::cout << "Extracting mesh ..." << std::endl;
                 auto mesh = pipeline.extract_mesh();
@@ -192,13 +209,22 @@ void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::Gl
                 end = true;
                 break;
             }
+            // 如果 空格 被按下,就什么都不保存,直接退出
             case ' ': // Save nothing
                 end = true;
                 break;
             default:
                 break;
-        }
-    }
+        }// 处理键盘事件
+    }// 主循环
+
+    // HERE
+    // 接下来可以开始看的入口:
+    // 1. KinectFusion pipeline 的构造函数
+    // 2. KinectFusion的处理函数
+    // 3. 获取相机位姿的接口函数
+    // 4. 获取重建的mesh模型的接口
+    // 5. 将mesh模型转换成为 ply文件的接口
 }
 
 /** @brief 设置和选择CUDA设备 */

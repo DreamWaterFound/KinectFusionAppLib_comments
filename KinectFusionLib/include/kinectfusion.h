@@ -21,6 +21,9 @@ namespace kinectfusion {
      * In the end, you can export the internal volume either as a pointcloud or a dense surface mesh.
      * You can also export the camera poses and (depending on your configuration) visualize the last model frame.
      *
+     * // ? 1. 彩色图怎么融合的?
+     * // ? 2. 点云图怎么查看?
+     * // ? 3. 相机的位姿怎么查看?
      */
     class Pipeline {
     public:

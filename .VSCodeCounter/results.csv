@@ -1,0 +1,28 @@
+filename, language, CMake, TOML, Markdown, Ignore, C++, Shell Script, CUDA C++, comment, blank, total
+KinectFusionApp/config.toml, TOML, 0, 22, 0, 0, 0, 0, 0, 24, 13, 59
+KinectFusionApp/include/cpptoml.h, C++, 0, 0, 0, 0, 2442, 0, 0, 402, 431, 3275
+KinectFusionApp/include/cxxopts.hpp, C++, 0, 0, 0, 0, 1630, 0, 0, 52, 308, 1990
+KinectFusionApp/include/depth_camera.h, C++, 0, 0, 0, 0, 60, 0, 0, 86, 30, 176
+KinectFusionApp/include/util.h, C++, 0, 0, 0, 0, 36, 0, 0, 0, 6, 42
+KinectFusionApp/src/depth_camera.cpp, C++, 0, 0, 0, 0, 224, 0, 0, 117, 63, 404
+KinectFusionApp/src/main.cpp, C++, 0, 0, 0, 0, 153, 0, 0, 82, 32, 267
+KinectFusionLib/.gitignore, Ignore, 0, 0, 0, 56, 0, 0, 0, 39, 30, 125
+KinectFusionLib/README.md, Markdown, 0, 0, 65, 0, 0, 0, 0, 0, 15, 80
+KinectFusionLib/include/data_types.h, C++, 0, 0, 0, 0, 204, 0, 0, 149, 51, 404
+KinectFusionLib/include/kinectfusion.h, C++, 0, 0, 0, 0, 58, 0, 0, 79, 29, 166
+KinectFusionLib/rebuild.sh, Shell Script, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2
+KinectFusionLib/src/cuda/extract_pointcloud.cu, CUDA C++, 0, 0, 0, 0, 0, 0, 88, 3, 22, 113
+KinectFusionLib/src/cuda/include/common.h, C++, 0, 0, 0, 0, 20, 0, 0, 3, 6, 29
+KinectFusionLib/src/cuda/include/mc_tables.h, C++, 0, 0, 0, 0, 519, 0, 0, 1, 5, 525
+KinectFusionLib/src/cuda/marching_cubes.cu, CUDA C++, 0, 0, 0, 0, 0, 0, 254, 18, 71, 343
+KinectFusionLib/src/cuda/pose_estimation.cu, CUDA C++, 0, 0, 0, 0, 0, 0, 175, 3, 40, 218
+KinectFusionLib/src/cuda/surface_measurement.cu, CUDA C++, 0, 0, 0, 0, 0, 0, 64, 3, 22, 89
+KinectFusionLib/src/cuda/surface_prediction.cu, CUDA C++, 0, 0, 0, 0, 0, 0, 168, 3, 46, 217
+KinectFusionLib/src/cuda/surface_reconstruction.cu, CUDA C++, 0, 0, 0, 0, 0, 0, 83, 3, 27, 113
+KinectFusionLib/src/kinectfusion.cpp, C++, 0, 0, 0, 0, 127, 0, 0, 7, 25, 159
+KinectFusionLib/src/pose_estimation.cpp, C++, 0, 0, 0, 0, 60, 0, 0, 9, 13, 82
+KinectFusionLib/src/surface_measurement.cpp, C++, 0, 0, 0, 0, 54, 0, 0, 7, 14, 75
+README.md, Markdown, 0, 0, 42, 0, 0, 0, 0, 0, 14, 56
+cmake/Findopenni2.cmake, CMake, 40, 0, 0, 0, 0, 0, 0, 0, 6, 46
+runKinectFusionApp.sh, Shell Script, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1
+Total, -, 40, 22, 107, 56, 5587, 3, 832, 1090, 1319, 9056

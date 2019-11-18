@@ -62,7 +62,7 @@ namespace kinectfusion {
             if (level == 0) return *this;
 
             const float scale_factor = powf(0.5f, static_cast<float>(level));
-            return CameraParameters { image_width >> level, image_height >> level,          // 注意这里是左移... mmp
+            return CameraParameters { image_width >> level, image_height >> level,          // 注意这里是左移，KinectFusion中不同层的图像金字塔中的图层是降采样的
                                       focal_x * scale_factor, focal_y * scale_factor,
                                       (principal_x + 0.5f) * scale_factor - 0.5f,           // ? 这边为什么是这个操作?
                                       (principal_y + 0.5f) * scale_factor - 0.5f };
@@ -140,13 +140,14 @@ namespace kinectfusion {
      * The struct is preset with some default values so that you can use the configuration without modification.
      * However, you will probably want to adjust most of them to your specific use case.
      *
-     * Spatial parameters are always represented in millimeters (mm).
+     * NOTICE Spatial parameters are always represented in millimeters (mm).
      *
      */
+    // - Done
     struct GlobalConfiguration {
         // The overall size of the volume (in mm). Will be allocated on the GPU and is thus limited by the amount of
         // storage you have available. Dimensions are (x, y, z).
-        // ? 花括号中的是啥操作?
+        // 其实也是核函数的数目, 这里的make_int3是CUDA中的核函数的大小
         int3 volume_size { make_int3(512, 512, 512) };
 
         // The amount of mm one single voxel will represent in each dimension. Controls the resolution of the volume.
@@ -163,6 +164,7 @@ namespace kinectfusion {
 
         // Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
         // retrieve the frame with Pipeline::get_last_model_frame()
+        // 这里的下载指的是从 GPU 上下载
         bool use_output_frame = { true };
 
         // The truncation distance for both updating and raycasting the TSDF volume
@@ -170,6 +172,8 @@ namespace kinectfusion {
 
         // The distance (in mm) after which to set the depth in incoming depth frames to 0.
         // Can be used to separate an object you want to scan from the background
+        // 大概意思是当传入了一张深度图之后, 深度图上深度值为0的距离
+        // ? 具体意义存疑
         float depth_cutoff_distance { 1000.f };
 
         // The number of pyramid levels to generate for each frame, including the original frame level
@@ -186,6 +190,8 @@ namespace kinectfusion {
         // The angle threshold (as described in the paper) in degrees
         float angle_threshold { 20.f };
         // Number of ICP iterations for each level from original level 0 to highest scaled level (sparse to coarse)
+        // 即第一层迭代10次,第二层5次,第三层4次. 但是toml的配置文件中写得顺序则是相反的
+        // TODO 验证这一点
         std::vector<int> icp_iterations {10, 5, 4};
     };
 
