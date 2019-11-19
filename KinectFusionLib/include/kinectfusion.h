@@ -23,7 +23,7 @@ namespace kinectfusion {
      *
      * // ? 1. 彩色图怎么融合的?
      * // ? 2. 点云图怎么查看?
-     * // ? 3. 相机的位姿怎么查看?
+     * // 3. 相机的位姿怎么查看? -- 输出文件
      */
     class Pipeline {
     public:
@@ -32,6 +32,7 @@ namespace kinectfusion {
          * @param _camera_parameters The \ref{CameraParameters} that you want this pipeline to use
          * @param _configuration The \ref{GlobalConfiguration} with all parameters the pipeline should use
          */
+        // - 下面就用这个符号表示这个函数已经分析过了
         Pipeline(const CameraParameters _camera_parameters,
                  const GlobalConfiguration _configuration);
 
@@ -39,7 +40,8 @@ namespace kinectfusion {
 
         /**
          * Invoke this for every frame you want to fuse into the global volume
-         * @param depth_map The depth map for the current frame. Must consist of float values representing the depth in mm
+         * @param depth_map The depth map for the current frame. 
+         * ! Must consist of float values representing the depth in mm
          * @param color_map The RGB color map. Must be a matrix (datatype CV_8UC3)
          * @return Whether the frame has been fused successfully. Will only be false if the ICP failed.
          */
@@ -71,22 +73,22 @@ namespace kinectfusion {
 
     private:
         // Internal parameters, not to be changed after instantiation
-        const CameraParameters camera_parameters;
-        const GlobalConfiguration configuration;
+        const CameraParameters camera_parameters;                       // 相机内参
+        const GlobalConfiguration configuration;                        // 系统配置
 
         // The global volume (containing tsdf and color)
-        internal::VolumeData volume;
+        internal::VolumeData volume;                                    // 模型存在的容器:volume
 
         // The model data for the current frame
-        internal::ModelData model_data;
+        internal::ModelData model_data;                                 // 顶点\法向\彩色 金字塔
 
         // Poses: Current and all previous
-        Eigen::Matrix4f current_pose;
-        std::vector<Eigen::Matrix4f> poses;
+        Eigen::Matrix4f current_pose;                                   // 当前帧的相机位姿
+        std::vector<Eigen::Matrix4f> poses;                             // 历史上的相机位姿, 也就是轨迹
 
         // Frame ID and raycast result for output purposes
-        size_t frame_id;
-        cv::Mat last_model_frame;
+        size_t frame_id;                                                // 当前帧的图像id
+        cv::Mat last_model_frame;                                       // 从GPU的模型中进行渲染得到的图像, 用于进行可视化显示
     };
 
     /**
@@ -114,6 +116,7 @@ namespace kinectfusion {
          * Step 1: SURFACE MEASUREMENT
          * Compute vertex and normal maps and their pyramids
          */
+        // -
         FrameData surface_measurement(const cv::Mat_<float>& input_frame,
                                       const CameraParameters& camera_params,
                                       const size_t num_levels, const float depth_cutoff,

@@ -1,4 +1,13 @@
-
+/**
+ * @file util.h
+ * @author guoqing (1337841346@qq.com)
+ * @brief 这里面的东西好像没有用到啊
+ * @version 0.1
+ * @date 2019-11-18
+ * 
+ * @copyright Copyright (c) 2019
+ * 
+ */
 #ifndef KINECTFUSION_UTIL_H
 #define KINECTFUSION_UTIL_H
 

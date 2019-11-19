@@ -1,6 +1,8 @@
 # Configuration file for KinectFusionApp
 
+# 指定数据集存放地址. 同时还有指定保存相机位姿轨迹和重加结果的路径的作用
 data_path = "/home/christian/share/dataset/"
+# 使用 Pseudo 伪相机的时候, 数据集的名字
 recording_name = "woman"
 
 # Input camera settings
@@ -40,6 +42,7 @@ truncation_distance = 25.0
 
 # The distance (in mm) after which to set the depth in incoming depth frames to 0.
 # Can be used to separate an object you want to scan from the background
+# 不考虑的过远的点的距离
 depth_cutoff_distance = 1500.0
 
 # The number of pyramid levels to generate for each frame, including the original frame level

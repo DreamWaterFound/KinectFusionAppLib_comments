@@ -31,6 +31,8 @@
 #include <Eigen/Eigen>
 #endif
 
+// 使用OpenCV提供的在GPU上的图像数据类型
+// 这个 GpuMat 我觉得可以理解为一种智能指针, 它保存了 GPU 显存中一大段数组的指针. 只有"图像"数据是存储在显存上的, 其他的属性数据都是存储在内存上的
 using cv::cuda::GpuMat;
 
 namespace kinectfusion {
@@ -57,6 +59,7 @@ namespace kinectfusion {
          * higher levels correspond to smaller spatial size
          * @return A CameraParameters structure containing the scaled values
          */
+        // 由于不同图层中的图像大小不一样，所以这里也就根据不同的图层返回了不同的数据
         CameraParameters level(const size_t level) const
         {
             if (level == 0) return *this;
@@ -65,7 +68,7 @@ namespace kinectfusion {
             return CameraParameters { image_width >> level, image_height >> level,          // 注意这里是左移，KinectFusion中不同层的图像金字塔中的图层是降采样的
                                       focal_x * scale_factor, focal_y * scale_factor,
                                       (principal_x + 0.5f) * scale_factor - 0.5f,           // ? 这边为什么是这个操作?
-                                      (principal_y + 0.5f) * scale_factor - 0.5f };
+                                      (principal_y + 0.5f) * scale_factor - 0.5f };         // ? 感觉比较像是尽可能利用好"四舍五入"这个性质
         }
     };
 
@@ -160,6 +163,7 @@ namespace kinectfusion {
         float bfilter_spatial_sigma { 1.f };
 
         // The initial distance of the camera from the volume center along the z-axis (in mm)
+        // 首张图像中建立的模型距离相机的距离
         float init_depth { 1000.f };
 
         // Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
@@ -173,6 +177,7 @@ namespace kinectfusion {
         // The distance (in mm) after which to set the depth in incoming depth frames to 0.
         // Can be used to separate an object you want to scan from the background
         // 大概意思是当传入了一张深度图之后, 深度图上深度值为0的距离
+        // 但是感觉又像是深度图中认为抛弃的距离,可以将过远的像素点排除?
         // ? 具体意义存疑
         float depth_cutoff_distance { 1000.f };
 
@@ -196,28 +201,35 @@ namespace kinectfusion {
     };
 
 
+    // 这个名字空间中定义了一些在KinectFusion中使用的关于模型的数据类型
     namespace internal {
         /*
          * Contains the internal data representation of one single frame as read by the depth camera
          * Consists of depth, smoothed depth and color pyramids as well as vertex and normal pyramids
          */
+        // - 保存了每一帧的输入数据的特性
         struct FrameData {
-            std::vector<GpuMat> depth_pyramid;
-            std::vector<GpuMat> smoothed_depth_pyramid;
-            std::vector<GpuMat> color_pyramid;
+            std::vector<GpuMat> depth_pyramid;                              // 原始深度图的金字塔
+            std::vector<GpuMat> smoothed_depth_pyramid;                     // 滤波后的深度图金字塔
+            std::vector<GpuMat> color_pyramid;                              // 彩色图像的金字塔
 
-            std::vector<GpuMat> vertex_pyramid;
-            std::vector<GpuMat> normal_pyramid;
+            std::vector<GpuMat> vertex_pyramid;                             // 3D点金字塔
+            std::vector<GpuMat> normal_pyramid;                             // 法向量金字塔
 
+            // explicit 关键字是为了避免出现像 FrameData = 3 这样的容易产生混淆的使用, 适用于只有一个参数的构造函数
+            // 构造函数: 如果只给了金字塔的层数, 那么就按照这个层数来初始化这里面保存的所有金字塔;
             explicit FrameData(const size_t pyramid_height) :
                     depth_pyramid(pyramid_height), smoothed_depth_pyramid(pyramid_height),
                     color_pyramid(pyramid_height), vertex_pyramid(pyramid_height), normal_pyramid(pyramid_height)
-            { }
+            { 
+                // 注意这里和 ModelData 不同,这里没有预先分配GPU的存储空间
+            }
 
-            // No copying
+            // No copying 左值拷贝全部被禁用
             FrameData(const FrameData&) = delete;
             FrameData& operator=(const FrameData& other) = delete;
 
+            // 允许使用右值拷贝
             FrameData(FrameData&& data) noexcept :
                     depth_pyramid(std::move(data.depth_pyramid)),
                     smoothed_depth_pyramid(std::move(data.smoothed_depth_pyramid)),
@@ -225,7 +237,7 @@ namespace kinectfusion {
                     vertex_pyramid(std::move(data.vertex_pyramid)),
                     normal_pyramid(std::move(data.normal_pyramid))
             { }
-
+            // 同上
             FrameData& operator=(FrameData&& data) noexcept
             {
                 depth_pyramid = std::move(data.depth_pyramid);
@@ -241,16 +253,21 @@ namespace kinectfusion {
          * Contains the internal data representation of one single frame as raycast by surface prediction
          * Consists of depth, smoothed depth and color pyramids as well as vertex and normal pyramids
          */
+        // - 和模型的表面推理有关
         struct ModelData {
-            std::vector<GpuMat> vertex_pyramid;
-            std::vector<GpuMat> normal_pyramid;
-            std::vector<GpuMat> color_pyramid;
+            std::vector<GpuMat> vertex_pyramid;                     // 三维点的金字塔
+            std::vector<GpuMat> normal_pyramid;                     // 法向量的金字塔
+            std::vector<GpuMat> color_pyramid;                      // ? 为什么对彩色图像也要建立金字塔呢
 
+            // 构造函数
             ModelData(const size_t pyramid_height, const CameraParameters camera_parameters) :
+                    // 初始化三个"图像"金字塔的高度
                     vertex_pyramid(pyramid_height), normal_pyramid(pyramid_height),
                     color_pyramid(pyramid_height)
             {
+                // 遍历每一层金字塔
                 for (size_t level = 0; level < pyramid_height; ++level) {
+                    // 生成对应的GpuMat数据
                     vertex_pyramid[level] =
                             cv::cuda::createContinuous(camera_parameters.level(level).image_height,
                                                        camera_parameters.level(level).image_width,
@@ -263,21 +280,24 @@ namespace kinectfusion {
                             cv::cuda::createContinuous(camera_parameters.level(level).image_height,
                                                        camera_parameters.level(level).image_width,
                                                        CV_8UC3);
+                    // 然后清空为0
                     vertex_pyramid[level].setTo(0);
                     normal_pyramid[level].setTo(0);
-                }
-            }
+                }// 遍历每一层金字塔
+            }// 构造函数
 
-            // No copying
+            // No copying 左值拷贝被禁止
             ModelData(const ModelData&) = delete;
             ModelData& operator=(const ModelData& data) = delete;
 
+            // 右值拷贝构造函数还是允许的
             ModelData(ModelData&& data) noexcept :
                     vertex_pyramid(std::move(data.vertex_pyramid)),
                     normal_pyramid(std::move(data.normal_pyramid)),
                     color_pyramid(std::move(data.color_pyramid))
             { }
 
+            // 同上
             ModelData& operator=(ModelData&& data) noexcept
             {
                 vertex_pyramid = std::move(data.vertex_pyramid);
@@ -300,17 +320,22 @@ namespace kinectfusion {
          * (2) Voxel scale: The scale of a single voxel (in mm)
          *
          */
+        // -
         struct VolumeData {
+            // OpenCV 提供的在GPU上的图像数据类型
             GpuMat tsdf_volume; //short2
             GpuMat color_volume; //uchar4
             int3 volume_size;
             float voxel_scale;
 
+            // 构造函数
             VolumeData(const int3 _volume_size, const float _voxel_scale) :
+                    // 注意 TSDF 是2通道的, 意味着其中一个通道存储TSDF函数值, 另外一个通道存储其权重
                     tsdf_volume(cv::cuda::createContinuous(_volume_size.y * _volume_size.z, _volume_size.x, CV_16SC2)),
                     color_volume(cv::cuda::createContinuous(_volume_size.y * _volume_size.z, _volume_size.x, CV_8UC3)),
                     volume_size(_volume_size), voxel_scale(_voxel_scale)
             {
+                // 全部清空
                 tsdf_volume.setTo(0);
                 color_volume.setTo(0);
             }

@@ -11,21 +11,30 @@ namespace kinectfusion {
 
     Pipeline::Pipeline(const CameraParameters _camera_parameters,
                        const GlobalConfiguration _configuration) :
+            //  生成参数对象
             camera_parameters(_camera_parameters), configuration(_configuration),
+            // 设置volume
             volume(_configuration.volume_size, _configuration.voxel_scale),
+            // 设置模型数据
             model_data(_configuration.num_levels, _camera_parameters),
+            // 初始化数据: 清空位姿,轨迹等
             current_pose{}, poses{}, frame_id{0}, last_model_frame{}
     {
         // The pose starts in the middle of the cube, offset along z by the initial depth
+        // ? 看不懂上面说的,为什么要这么设置,为什么不是直接设置在世界坐标系原点?
         current_pose.setIdentity();
         current_pose(0, 3) = _configuration.volume_size.x / 2 * _configuration.voxel_scale;
         current_pose(1, 3) = _configuration.volume_size.y / 2 * _configuration.voxel_scale;
         current_pose(2, 3) = _configuration.volume_size.z / 2 * _configuration.voxel_scale - _configuration.init_depth;
     }
 
+    // 每一帧的数据处理都要调用这个函数
+    // HERE
+    // REVIEW NEED
     bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
     {
         // STEP 1: Surface measurement
+        // ? 数据类型
         internal::FrameData frame_data = internal::surface_measurement(depth_map, camera_parameters,
                                                                        configuration.num_levels,
                                                                        configuration.depth_cutoff_distance,
