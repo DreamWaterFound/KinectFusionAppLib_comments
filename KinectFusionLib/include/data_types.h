@@ -331,6 +331,7 @@ namespace kinectfusion {
             // 构造函数
             VolumeData(const int3 _volume_size, const float _voxel_scale) :
                     // 注意 TSDF 是2通道的, 意味着其中一个通道存储TSDF函数值, 另外一个通道存储其权重
+                    // 这个第一维的尺寸有些奇特啊
                     tsdf_volume(cv::cuda::createContinuous(_volume_size.y * _volume_size.z, _volume_size.x, CV_16SC2)),
                     color_volume(cv::cuda::createContinuous(_volume_size.y * _volume_size.z, _volume_size.x, CV_8UC3)),
                     volume_size(_volume_size), voxel_scale(_voxel_scale)

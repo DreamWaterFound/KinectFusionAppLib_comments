@@ -141,6 +141,7 @@ namespace kinectfusion {
              * Step 3: SURFACE RECONSTRUCTION
              * Integration of surface measurements into a global volume
              */
+            // -
             void surface_reconstruction(const cv::cuda::GpuMat& depth_image,
                                         const cv::cuda::GpuMat& color_image,
                                         VolumeData& volume,
