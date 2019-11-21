@@ -75,11 +75,11 @@ namespace kinectfusion {
         poses.push_back(current_pose);
 
         // STEP 3: Surface reconstruction
-        // 进行表面重建的工作, // ? 感觉这里更像是将当前帧的表面模型融合到global中?
+        // 进行表面重建的工作, 其实是是将当前帧的观测信息融合到Global Volume
         internal::cuda::surface_reconstruction(
             frame_data.depth_pyramid[0],                        // 金字塔底层的深度图像
             frame_data.color_pyramid[0],                        // 金字塔底层的彩色图像
-            volume,                                             // TSDF Volume
+            volume,                                             // Global Volume
             camera_parameters,                                  // 相机内参
             configuration.truncation_distance,                  // 阶段距离u
             current_pose.inverse());                            // 相机外参 -- 其实这里可以加速的, 直接对Eigen::Matrix4f求逆有点耗时间
@@ -89,11 +89,14 @@ namespace kinectfusion {
         // 从下到上依次遍历图像金字塔
         for (int level = 0; level < configuration.num_levels; ++level)
             // 对每层图像的数据都进行表面的推理
-            internal::cuda::surface_prediction(volume, model_data.vertex_pyramid[level],
-                                               model_data.normal_pyramid[level],
-                                               model_data.color_pyramid[level],
-                                               camera_parameters.level(level), configuration.truncation_distance,
-                                               current_pose);
+            internal::cuda::surface_prediction(
+                volume,                                         // Global Volume
+                model_data.vertex_pyramid[level],               // 推理得到的平面的顶点图
+                model_data.normal_pyramid[level],               // 推理得到的平面的法向图 
+                model_data.color_pyramid[level],                // 推理得到的彩色图
+                camera_parameters.level(level),                 // 当前图层的相机内参
+                configuration.truncation_distance,              // 截断距离
+                current_pose);                                  // 当前时刻的相机位姿(注意没有取逆)
 
         // Step 5 如果需要显示模型, 则从GPU中获取
         if (configuration.use_output_frame) // Not using the output will speed up the processing

@@ -80,7 +80,8 @@ namespace kinectfusion {
         internal::VolumeData volume;                                    // 模型存在的容器:volume
 
         // The model data for the current frame
-        internal::ModelData model_data;                                 // 顶点\法向\彩色 金字塔
+        internal::ModelData model_data;                                 // 顶点\法向\彩色 金字塔, 存储当前帧时从Global Volume中推理得到的表面模型
+                                                                        // ? 如果确认属实, 更新响应的类型说明
 
         // Poses: Current and all previous
         Eigen::Matrix4f current_pose;                                   // 当前帧的相机位姿
@@ -154,6 +155,7 @@ namespace kinectfusion {
              * Step 4: SURFACE PREDICTION
              * Raycast volume in order to compute a surface prediction
              */
+            // -
             void surface_prediction(const VolumeData& volume,
                                     cv::cuda::GpuMat& model_vertex,
                                     cv::cuda::GpuMat& model_normal,
