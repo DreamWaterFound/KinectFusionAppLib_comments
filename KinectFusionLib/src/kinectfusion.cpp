@@ -21,7 +21,7 @@ namespace kinectfusion {
             current_pose{}, poses{}, frame_id{0}, last_model_frame{}
     {
         // The pose starts in the middle of the cube, offset along z by the initial depth
-        // ? 看不懂上面说的,为什么要这么设置,为什么不是直接设置在世界坐标系原点?
+        // 第一帧的相机位姿设置在 Volume 的中心, 然后在z轴上拉远一点
         current_pose.setIdentity();
         current_pose(0, 3) = _configuration.volume_size.x / 2 * _configuration.voxel_scale;
         current_pose(1, 3) = _configuration.volume_size.y / 2 * _configuration.voxel_scale;
@@ -30,7 +30,6 @@ namespace kinectfusion {
 
     // 每一帧的数据处理都要调用这个函数
     // HERE
-    // REVIEW NEED
     bool Pipeline::process_frame(const cv::Mat_<float>& depth_map, const cv::Mat_<cv::Vec3b>& color_map)
     {
         // STEP 1: Surface measurement
@@ -52,24 +51,22 @@ namespace kinectfusion {
 
         // STEP 2: Pose estimation
         // 表示icp过程是否成功的变量
-        // REVIEW 源码暂时搁置, 因为看这里需要知道上一帧的平面是怎么预测得到的
         bool icp_success { true };
         if (frame_id > 0) { // Do not perform ICP for the very first frame
             // 不在第一帧进行位姿估计
             icp_success = internal::pose_estimation(
-                current_pose,                                   // (上一帧)得到的相机位姿
+                current_pose,                                   // 输入: 上一帧的相机位姿; 输出: 当前帧得到的相机位姿
                 frame_data,                                     // 当前帧的彩色图/深度图/顶点图/法向图数据
-                model_data,                                     // 上一帧图像输入后, 推理出的平面模型
+                model_data,                                     // 上一帧图像输入后, 推理出的平面模型，使用顶点图、法向图来表示
                 camera_parameters,                              // 相机内参
                 configuration.num_levels,                       // 金字塔层数
                 configuration.distance_threshold,               // icp 匹配过程中视为 outlier 的距离差
-                configuration.angle_threshold,                  // icp 匹配过程中视为 outlier 的角度差
+                configuration.angle_threshold,                  // icp 匹配过程中视为 outlier 的角度差 (deg)
                 configuration.icp_iterations);                  // icp 过程的迭代次数
         }
         // 如果 icp 过程不成功, 那么就说明当前失败了
         if (!icp_success)
-            // 这里的实现其实和 KinectFusion 论文中还是有些出入, 论文中在icp失败之后会保持上一帧平面的prediction然后一直都在尝试重新icp, 尝试重定位回去
-            // ? 不对, 好像是相同的
+            // icp失败之后本次处理退出,但是上一帧推理的得到的平面将会一直保持, 每次新来一帧都会重新icp后一直都在尝试重新icp, 尝试重定位回去
             return false;
         // 记录当前帧的位姿
         poses.push_back(current_pose);

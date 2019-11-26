@@ -18,6 +18,8 @@ namespace kinectfusion {
                 const int3& volume_size, 
                 const float voxel_scale)
             {
+                // 本函数中考虑的, 都是
+
                 // 这个点在 Volume 下的坐标, 转换成为整数下标标的表示
                 Vec3ida point_in_grid = point.cast<int>();
 
@@ -33,6 +35,7 @@ namespace kinectfusion {
                 point_in_grid.z() = (point.z() < vz) ? (point_in_grid.z() - 1) : point_in_grid.z();
 
                 // ? 为什么要 +0.5f?
+                // 三线型插值, ref: https://en.wikipedia.org/wiki/Trilinear_interpolation
                 // 计算精确的(浮点型)的点坐标和整型化之后的点坐标的差
                 const float a = (point.x() - (static_cast<float>(point_in_grid.x()) + 0.5f));
                 const float b = (point.y() - (static_cast<float>(point_in_grid.y()) + 0.5f));
@@ -40,28 +43,28 @@ namespace kinectfusion {
 
                 return 
                     static_cast<float>(volume.ptr((point_in_grid.z()) * volume_size.y + point_in_grid.y())[point_in_grid.x()].x) * DIVSHORTMAX 
-                        // volume[ x ][ y ][ z ]
+                        // volume[ x ][ y ][ z ], C000
                         * (1 - a) * (1 - b) * (1 - c) +
                     static_cast<float>(volume.ptr((point_in_grid.z() + 1) * volume_size.y + point_in_grid.y())[point_in_grid.x()].x) * DIVSHORTMAX 
-                        // volume[ x ][ y ][z+1]
+                        // volume[ x ][ y ][z+1], C001
                         * (1 - a) * (1 - b) * c +
                     static_cast<float>(volume.ptr((point_in_grid.z()) * volume_size.y + point_in_grid.y() + 1)[point_in_grid.x()].x) * DIVSHORTMAX 
-                        // volume[ x ][y+1][ z ]
+                        // volume[ x ][y+1][ z ], C010
                         * (1 - a) * b * (1 - c) +
                     static_cast<float>(volume.ptr((point_in_grid.z() + 1) * volume_size.y + point_in_grid.y() + 1)[point_in_grid.x()].x) * DIVSHORTMAX 
-                        // volume[ x ][y+1][z+1]
+                        // volume[ x ][y+1][z+1], C011
                         * (1 - a) * b * c +
                     static_cast<float>(volume.ptr((point_in_grid.z()) * volume_size.y + point_in_grid.y())[point_in_grid.x() + 1].x) * DIVSHORTMAX 
-                        // volume[x+1][ y ][ z ]
+                        // volume[x+1][ y ][ z ], C100
                         * a * (1 - b) * (1 - c) +
                     static_cast<float>(volume.ptr((point_in_grid.z() + 1) * volume_size.y + point_in_grid.y())[point_in_grid.x() + 1].x) * DIVSHORTMAX 
-                        // volume[x+1][ y ][z+1]
+                        // volume[x+1][ y ][z+1], C101
                         * a * (1 - b) * c +
                     static_cast<float>(volume.ptr((point_in_grid.z()) * volume_size.y + point_in_grid.y() + 1)[point_in_grid.x() + 1].x) * DIVSHORTMAX 
-                        // volume[x+1][y+1][ z ]
+                        // volume[x+1][y+1][ z ], C110
                         * a * b * (1 - c) +
                     static_cast<float>(volume.ptr((point_in_grid.z() + 1) * volume_size.y + point_in_grid.y() + 1)[point_in_grid.x() + 1].x) * DIVSHORTMAX 
-                        // volume[x+1][y+1][z+1]
+                        // volume[x+1][y+1][z+1], C111
                         * a * b * c;
             }
 
@@ -163,14 +166,14 @@ namespace kinectfusion {
                 ray_length += voxel_scale;
                 Vec3fda grid = (translation + (ray_direction * ray_length)) / voxel_scale;
 
-                // ? 拿到对应体素处的 TSDF 值?
+                // 拿到 Grid 对应体素处的 TSDF 值
                 float tsdf = static_cast<float>(tsdf_volume.ptr(
                         __float2int_rd(grid(2)) * volume_size.y + __float2int_rd(grid(1)))[__float2int_rd(grid(0))].x) *
                              DIVSHORTMAX;
 
-                // ? 计算最大搜索长度
+                // 计算最大搜索长度(考虑了光线开始“投射”的时候已经走过的路程 ray_length )  // ? 但是为什么后面是根号2,？ 不应该是Volume的体对角线， 根号3吗？
                 const float max_search_length = ray_length + volume_range.x * sqrt(2.f);
-                // ? 开始迭代搜索了, raycasting 开始
+                // 开始迭代搜索了, raycasting 开始
                 for (; ray_length < max_search_length; ray_length += truncation_distance * 0.5f) {
 
                     // ? 计算当前迭代的时候的网格?
@@ -227,7 +230,7 @@ namespace kinectfusion {
                         // 如果滑出体素范围了就不管了
                         if (shifted.x() >= volume_size.x - 1)
                             break;
-                        // ? 
+                        // ? 可是这里得到的 Fx1 还是 TSDF 值啊
                         const float Fx1 = interpolate_trilinearly(
                             shifted,            // vertex 点在Volume的坐标滑动之后的点, Vec3fda
                             tsdf_volume,        // TSDF Volume
@@ -261,7 +264,6 @@ namespace kinectfusion {
                         normal.y() = (Fy1 - Fy2);
 
                         // ======== 同上
-
                         shifted = location_in_grid;
                         shifted.z() += 1;
                         if (shifted.z() >= volume_size.z - 1)
