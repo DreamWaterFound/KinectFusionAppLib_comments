@@ -205,7 +205,7 @@ namespace kinectfusion {
                     truncation_distance,                    // 截断距离u
                     model_view.block(0, 0, 3, 3),           // 提取旋转矩阵
                                                             // (Index startRow, Index startCol, Index blockRows, Index blockCols)
-                    model_view.block(0, 3, 3, 1));          // 提取平移向量 -- // ? 这里怎么感觉像是写反了?
+                    model_view.block(0, 3, 3, 1));          // 提取平移向量
 
                 // step 3 等待所有的并行线程结束
                 cudaThreadSynchronize();

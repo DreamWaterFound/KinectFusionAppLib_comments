@@ -72,7 +72,7 @@ namespace kinectfusion {
                 const float angle_threshold,                                                // ICP 中关联匹配的最大角度阈值
                 const int cols,                                                             // 当前图层的图像列数
                 const int rows,                                                             // 当前图层的图像行数
-                PtrStep<double> global_buffer)                                              // ? 数据缓冲区?
+                PtrStep<double> global_buffer)                                              // 数据缓冲区, 暂存每个 block 中的累加和结果
             {
                 // step 0 数据准备
                 // 获取当前线程处理的像素坐标
@@ -222,7 +222,8 @@ namespace kinectfusion {
                 for (int t = threadIdx.x; t < length; t += 512)
                     sum += *(global_buffer.ptr(blockIdx.x) + t);
 
-                // ? 检查一下每个block可以使用的shared_memory大小
+                // 对于 GTX 1070, 每个 block 的 shared_memory 最大大小是 48KB, 足够使用了, 这里相当于只用了 1/12
+                // 前面设置线程个数为这些, 也是为了避免每个 block 中的 shared memory 超标, 又能够尽可能地使用所有的 shared memory
                 __shared__ double smem[512];
 
                 // 注意超过范围的线程也能够执行到这里, 上面的循环不会执行, sum=0, 因此保存到 smem 对后面的归约过程没有影响

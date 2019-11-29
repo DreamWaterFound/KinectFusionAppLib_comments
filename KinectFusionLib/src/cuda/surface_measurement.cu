@@ -22,7 +22,6 @@ namespace kinectfusion {
                 const int x = blockIdx.x * blockDim.x + threadIdx.x;
                 const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-                // ? 其实我挺好奇，在一个线程块中出现了这样的判断，流处理器要怎么处理
                 // 如果当前线程对应的图像像素并不真正地在图像中，那么当前就不需要计算了
                 if (x >= depth_map.cols || y >= depth_map.rows)
                     return;

@@ -11,7 +11,7 @@ namespace kinectfusion {
 
     Pipeline::Pipeline(const CameraParameters _camera_parameters,
                        const GlobalConfiguration _configuration) :
-            //  生成参数对象
+            //  生成参数对象                                                         
             camera_parameters(_camera_parameters), configuration(_configuration),
             // 设置volume
             volume(_configuration.volume_size, _configuration.voxel_scale),
