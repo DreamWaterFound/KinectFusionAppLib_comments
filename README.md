@@ -2,11 +2,25 @@
 
 这个是自己在源仓库的基础上，加上了自己注释的版本。
 
+源仓库：
+
+- KinectFusionLib [https://github.com/chrdiller/KinectFusionLib]
+- KinectFusionApp [https://github.com/chrdiller/KinectFusionApp]
+
 程序由两个部分组成，lib部分和app部分。
 
 注意编译通过的时候需要使用在cuda支持下的Eigen和OpenCV库，CUDA编译的时候使用的是8.0的版本。
 
-下面是ReadMe的源文档。
+
+其实里面还有一些小问题我也没有搞明白，欢迎有想法的大佬们疯狂提issue讨论～～
+
+另 KinectFusionLib 中将最后的模型输出成为点云文件的功能部分我现在也没有进行注释（和 KinectFusion 本身的功能关系不是很大）（好吧，我懒 = =）
+
+KinectFusion 中的 Point-to-plane ICP 的并行化有一些数学推导，导致KinectFusionLib中代码实现看起来比较“骚”，希望 `/doc/【附件】刘国庆-KinectFusion中Plane-to-point_ICP的计算推导.pdf` 这篇文档能够有所帮助。
+
+另外关于此 KinectFusionLib 的实现我在泡泡机器人的沈阳线下会议做了一个PPT：`/doc/【PPT】刘国庆-KinectFusionLib代码精析-Preview-V5.pdf`， 希望对感兴趣的同学有所帮助。
+
+下面是原版的 ReadMe.md.
 
 ----
 
