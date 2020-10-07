@@ -78,7 +78,7 @@ namespace kinectfusion {
             frame_data.color_pyramid[0],                        // 金字塔底层的彩色图像
             volume,                                             // Global Volume
             camera_parameters,                                  // 相机内参
-            configuration.truncation_distance,                  // 阶段距离u
+            configuration.truncation_distance,                  // 截断距离u
             current_pose.inverse());                            // 相机外参 -- 其实这里可以加速的, 直接对Eigen::Matrix4f求逆有点耗时间
 
         // Step 4: Surface prediction
